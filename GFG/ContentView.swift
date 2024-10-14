@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        NavigationView { // Add NavigationView here
+        NavigationView {
             GeometryReader { geometry in
                 VStack {
                     Text("HOUSES")
@@ -56,7 +56,7 @@ struct ContentView: View {
                     .font(.headline)
                     .foregroundColor(.black)
             }
-            .frame(width: width, height: width + 40) // Scales the button proportionally
+            .frame(width: width, height: width + 40)
             .background(Color.white)
             .cornerRadius(10)
             .shadow(radius: 5)
