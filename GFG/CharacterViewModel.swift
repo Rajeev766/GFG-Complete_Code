@@ -6,82 +6,63 @@
 //
 
 import Foundation
-import Combine
+import SwiftUI
 
 class ViewModel: ObservableObject {
-    @Published var members: [HouseMember] = [] // All members fetched from the API
-    @Published var displayedMembers: [HouseMember] = [] // Members currently displayed
-    let itemsPerPage = 10 // Limit per page
-    private var currentPage = 0 // Track the current page
-    private var totalMembers: Int {
-        members.count // Total number of members
-    }
+    @Published var members: [Character] = []
+    @Published var displayedMembers: [Character] = []
 
-    // Fetch members for a specific house and page
-    func fetchMembers(for houseName: String, page: Int = 0) {
-        let urlString = "https://hp-api.herokuapp.com/api/characters/house/\(houseName)"
-        print("Fetching members for house: \(houseName) - Page: \(page + 1)")
+    private var currentPage = 1
+    private let pageSize = 10
 
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
+    func fetchMembers(for house: String) {
+        guard let url = URL(string: "https://hp-api.herokuapp.com/api/characters/house/\(house)") else {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { (data, response, error) in
-            if let error = error {
-                print("Error fetching data: \(error.localizedDescription)")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let data = data, error == nil else {
                 return
             }
 
             do {
-                // Decode to an array of HouseMember
-                let allMembers = try JSONDecoder().decode([HouseMember].self, from: data)
+                let fetchedMembers = try JSONDecoder().decode([Character].self, from: data)
                 DispatchQueue.main.async {
-                    self.members = allMembers // Store all members
-                    self.loadMoreMembers() // Load the first page of members
+                    self?.members = fetchedMembers
+                    self?.resetPagination()
+                    self?.loadMoreMembers()
                 }
             } catch {
-                print("Error decoding data: \(error)")
-                if let jsonString = String(data: data, encoding: .utf8) {
-                    print("Raw JSON data: \(jsonString)")
-                }
+                print("Failed to decode data: \(error)")
             }
-        }.resume()
+        }
+        task.resume()
     }
 
-    // Load more members based on current page
     func loadMoreMembers() {
-        let startIndex = currentPage * itemsPerPage
-        let endIndex = min(startIndex + itemsPerPage, totalMembers)
+        let startIndex = (currentPage - 1) * pageSize
+        let endIndex = min(currentPage * pageSize, members.count)
 
-        if startIndex < totalMembers {
-            displayedMembers.append(contentsOf: Array(members[startIndex..<endIndex]))
-            currentPage += 1 // Move to the next page
+        if startIndex < endIndex {
+            let newMembers = members[startIndex..<endIndex]
+            displayedMembers.append(contentsOf: newMembers)
+            currentPage += 1
         }
     }
 
     func resetPagination() {
         displayedMembers.removeAll()
-        currentPage = 0
+        currentPage = 1
     }
 }
 
-
-import Foundation
-
-struct HouseMember: Identifiable, Decodable, Equatable {
-    let id: String
+struct Character: Identifiable, Decodable {
+    let id = UUID()
     let name: String
     let species: String
     let gender: String
     let house: String
     let dateOfBirth: String?
     let image: String
-    let alternate_names: [String]
     let hogwartsStaff: Bool
 }
